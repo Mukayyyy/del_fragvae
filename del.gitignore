@@ -1,0 +1,8 @@
+#ignore all log files
+*.log
+
+#ignore training data
+DATA
+
+# but not protein file
+!DATA/protein_files
