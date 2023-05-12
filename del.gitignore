@@ -6,3 +6,5 @@ DATA
 
 # but not protein file
 !DATA/protein_files
+
+.DS_Store

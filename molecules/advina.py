@@ -12,10 +12,10 @@ def adock(receptor_input,
         vina='qvina2',
         seed=None,
         cpu=1,
-        lig_dir = './new_BAS/ligand_files/',
-        out_dir = './new_BAS/output/',
-        log_dir = './new_BAS/log/',
-        conf_dir = './new_BAS/config/'):
+        lig_dir = '../CA9_scores/ligand_files/',
+        out_dir = '../CA9_scores/output/',
+        log_dir = '../CA9_scores/log/',
+        conf_dir = '../CA9_scores/config/'):
 
     #Imports
     import os

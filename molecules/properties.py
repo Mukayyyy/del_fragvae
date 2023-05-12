@@ -37,7 +37,7 @@ def tpsa(mol):
 
 def add_property(dataset, name, n_jobs):
     # fn = {"qed": qed, "SAS": sas, "logP": logp, "mr": mr}[name]
-    fn = {"qed": qed, "SAS": sas, "logP": logp, "mr": mr, "score": docking, "tpsa": tpsa}[name]
+    fn = {"qed": qed, "SAS": sas, "logP": logp, "mr": mr, "CA9": docking, "tpsa": tpsa}[name]
     smiles = dataset.smiles.tolist()
     mols = mols_from_smiles(smiles)
     pjob = Parallel(n_jobs=n_jobs, verbose=0)

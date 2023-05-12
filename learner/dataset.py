@@ -89,10 +89,10 @@ class FragmentDataset(Dataset):
         src = self.vocab.translate(seq[:-1]) # include '<SOS>' but  do not include '<EOS>'
         tgt = self.vocab.translate(seq[1:]) # do not include '<SOS>', but do not include '<EOS>'
         
-        properties = np.array([0,0,0], dtype=float)
+        properties = np.array([0,0,0,0], dtype=float)
         properties[0] = self.data.SAS[index]
         properties[1] = self.data.logP[index]
-        properties[2] = self.data.score[index]
+        properties[2] = self.data.CA9[index]
         
         return src, tgt, properties
 
@@ -117,6 +117,7 @@ class FragmentDataset(Dataset):
         start = time.time()
         if self.vocab is None:
             try:
+                print("no vocab")
                 self.vocab = Vocab.load(self.config)
             except Exception:
                 self.vocab = Vocab(self.config, self.data)

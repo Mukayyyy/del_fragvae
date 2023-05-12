@@ -104,7 +104,8 @@ class DEL():
             
             # get current training data
             samples = self.dataset.data # pd DataFrame with properties
-            properties = samples.loc[:,['SAS', 'logP', 'score']] # qed: the larger the better, SAS: the smaller the better, logP: the smaller the better 
+            # properties = samples.loc[:,['qed', 'SAS', 'logP']] # qed: the larger the better, SAS: the smaller the better, logP: the smaller the better 
+            properties = samples.loc[:,['SAS', 'logP', 'CA9']] # SAS: the smaller the better, logP: the smaller the better, CA9: the smaller the better, GPX4: the smaller the better
             # properties['qed'] = -properties['qed'] # to be minimized
             #properties['SAS'] = properties['SAS'] # to be minimized
             properties = properties.to_numpy()
@@ -180,11 +181,10 @@ class DEL():
             print('Fast non-dominated sort to get fronts ...')
             rank,Fs = self.fast_nondominated_sort(properties)
             print('Crowding distance sort for each front ...')
-            _,dists_vec=self.crowding_distance_all_fronts(properties, Fs, p_min, p_max, n_jobs=10)
+            _,dists_vec=self.crowding_distance_all_fronts(properties, Fs, p_min, p_max, n_jobs=14)
             
             print('Evolutionary operations: selection, recombination, and mutation ...')
             #pm=properties.mean().to_numpy() # properties mean
-            print(z.shape)
             z = self.evol_ops(z, rank, dists_vec, prob_ts = self.config.get('prob_ts'), 
                               crossover_method =self.config.get('crossover'), 
                               mutation_rate = self.config.get('mutation'))
@@ -197,46 +197,55 @@ class DEL():
             # sample from batchs of z
             new_samples = [] # a list of tuples
             valids= []
-            for zbatch in zloader:
-                samples_batch, valids_batch = self.sampler.sample_from_z( zbatch, save_results=False, seed=None)
-                new_samples += samples_batch # list
-                valids += list(valids_batch) # list
-            #vaids = np.array(valids)
-            z = z[valids] # remove invalid z
-            # obtain fitness score / properties for generated samples
-            new_samples = self.get_properties(new_samples) # samples now is a pd DataFrame
+            if g != 0:
+                for zbatch in zloader:
+                    samples_batch, valids_batch = self.sampler.sample_from_z( zbatch, save_results=False, seed=None)
+                    new_samples += samples_batch # list
+                    valids += list(valids_batch) # list
+                #vaids = np.array(valids)
+                z = z[valids] # remove invalid z
+                # obtain fitness score / properties for generated samples
+                new_samples = self.get_properties(new_samples) # samples now is a pd DataFrame
             
-            # obtain validity, novelty, and diversity of population data
-            _,vnd_pop = score_samples(new_samples, dataset.data)
-            vnd_pop.append( np.array(valids).mean() )
-            vnds_pop.loc[g] = vnd_pop
+                # obtain validity, novelty, and diversity of population data
+                _,vnd_pop = score_samples(new_samples, dataset.data)
+                vnd_pop.append( np.array(valids).mean() )
+                vnds_pop.loc[g] = vnd_pop
             
-            # remove duplicates
-            #new_samples = new_samples.drop_duplicates(subset = ["smiles"], ignore_index=True)
-            new_samples = new_samples.drop_duplicates(subset = ["smiles"]).reset_index(drop=True)
-            print(new_samples.columns)
-            #new_properties = new_samples.loc[:,['qed', 'SAS', 'logP']]
-            #new_properties = new_properties.to_numpy()
+                # remove duplicates
+                #new_samples = new_samples.drop_duplicates(subset = ["smiles"], ignore_index=True)
+                new_samples = new_samples.drop_duplicates(subset = ["smiles"]).reset_index(drop=True)
+                print(new_samples.columns)
+                #new_properties = new_samples.loc[:,['qed', 'SAS', 'logP']]
+                #new_properties = new_properties.to_numpy()
             
-            print('Producing new generation of data ...')
-            # merge new samples with old population
-            fieldnames = samples.columns.values.tolist()
-            new_samples = new_samples.loc[:,fieldnames] # same order of fields as samples
-            print(samples.shape)
-            print(new_samples.shape)
-            combined_samples = pd.concat( [samples, new_samples], ignore_index=True) # dataframe
+                print('Producing new generation of data ...')
+                # merge new samples with old population
+                fieldnames = samples.columns.values.tolist()
+                new_samples = new_samples.loc[:,fieldnames] # same order of fields as samples
+
+                print(samples.shape)
+                print(new_samples.shape)
+                combined_samples = pd.concat( [samples, new_samples], ignore_index=True) # dataframe
+           
+            # add BCC and Drugbank data to the first generation
+            if g == 0:
+                combined_samples = self.dataset.data.iloc[-20300:]
+                print('--------first generation-------')
+
             # remove duplicates
             combined_samples = combined_samples.drop_duplicates(subset = ["smiles"]).reset_index(drop=True)
             
             # combined properties
-            #combined_properties = np.vstack( (properties, new_properties) ) # numpy array
-            combined_properties = combined_samples.loc[:,['SAS', 'logP', 'score']]
+            # combined_properties = np.vstack( (properties, new_properties) ) # numpy array
+            # combined_properties = combined_samples.loc[:,['qed', 'SAS', 'logP']]
+            combined_properties = combined_samples.loc[:,['SAS', 'logP', 'CA9']]
             # combined_properties['qed'] = -combined_properties['qed'] # to be minimized
             #combined_properties['SAS'] = combined_properties['SAS'] # to be minimized
             combined_properties = combined_properties.to_numpy()
             # sort all samples
             rank,Fs = self.fast_nondominated_sort(combined_properties)
-            dists_all,dists_vec=self.crowding_distance_all_fronts(combined_properties, Fs, p_min, p_max, n_jobs=10)
+            dists_all,dists_vec=self.crowding_distance_all_fronts(combined_properties, Fs, p_min, p_max, n_jobs=14)
             
             combined_size = len(rank)
             if combined_size < self.population_size:
@@ -383,7 +392,7 @@ class DEL():
         """
         # selection
         N = rank.shape[0]
-        selected_inds = self.tournament_selection_N(N, rank, dists_vec, prob_ts=prob_ts, k=2, n_jobs=10)
+        selected_inds = self.tournament_selection_N(N, rank, dists_vec, prob_ts=prob_ts, k=2, n_jobs=14)
         selected_points = z[selected_inds]
         
         new_data = []
@@ -445,7 +454,7 @@ class DEL():
 #        selected_inds = pjob( delayed(self.tournament_selection)(rank, dists_vec, prob_ts, k) for n in range(num) )
 #        return selected_inds
     
-    def tournament_selection_N(self, num, rank, dists_vec, prob_ts, k=2, n_jobs=10):
+    def tournament_selection_N(self, num, rank, dists_vec, prob_ts, k=2, n_jobs=14):
         """
         Select num points.
         k: scalar, number of points to be randomly selected from the population.
@@ -512,7 +521,7 @@ class DEL():
         pass
     
     
-    def get_properties(self, samples, n_jobs=10):
+    def get_properties(self, samples, n_jobs=14):
         info = get_dataset_info(self.config.get('dataset'))
         
         columns = ["smiles", "fragments", "n_fragments"]
@@ -618,7 +627,7 @@ class DEL():
 #        return dists_all, dists_vec
        
  
-    def crowding_distance_all_fronts( self, P, Fs, f_min, f_max, n_jobs=10 ):
+    def crowding_distance_all_fronts( self, P, Fs, f_min, f_max, n_jobs=14 ):
         """
         P: properties.
         Fs: fronts.

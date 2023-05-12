@@ -53,7 +53,7 @@
         "qed",
         "SAS",
         "tpsa",
-        "score"
+        "CA9"
     ],
     "properties": [
         "qed",
@@ -61,6 +61,6 @@
         "SAS",
         "mr",
         "tpsa",
-        "score"
+        "CA9"
     ]
 }
